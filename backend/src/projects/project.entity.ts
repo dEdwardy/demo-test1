@@ -3,6 +3,7 @@ export class Project {
   title: string;
   story: string;
   status: 'draft' | 'processing' | 'completed' | 'failed';
+  scriptId?: string;
   createdAt: Date;
   updatedAt: Date;
 

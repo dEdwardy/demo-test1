@@ -64,4 +64,17 @@ export class ProjectsService {
   async findOne(id: string): Promise<Project | null> {
     return this.projects.find(project => project.id === id) || null;
   }
+
+  async updateProjectScriptId(projectId: string, scriptId: string): Promise<Project | null> {
+    const project = await this.findOne(projectId);
+    if (!project) {
+      return null;
+    }
+
+    project.scriptId = scriptId;
+    project.updatedAt = new Date();
+    this.saveProjects();
+
+    return project;
+  }
 }

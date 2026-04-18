@@ -1,0 +1,26 @@
+{
+  "applications": [
+    {
+      "name": "Story Video Creator Frontend",
+      "description": "Next.js frontend for creating videos from stories",
+      "type": "web",
+      "port": 8080,
+      "start_command": "cd frontend && npm run dev",
+      "health_check": "http://localhost:8080",
+      "framework": "nextjs"
+    },
+    {
+      "name": "Story Video Creator Backend",
+      "description": "NestJS backend API for story processing",
+      "type": "api",
+      "port": 8081,
+      "start_command": "cd backend && npm run start:dev",
+      "health_check": "http://localhost:8081/health",
+      "framework": "nestjs"
+    }
+  ],
+  "preview": {
+    "default_application": "Story Video Creator Frontend",
+    "url": "http://localhost:8080"
+  }
+}
