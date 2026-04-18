@@ -32,6 +32,10 @@ export interface Scene {
   description: string;
   dialogue?: string;
   duration: number;
+  imagePath?: string;
+  imageStatus: 'pending' | 'generating' | 'completed' | 'failed';
+  audioPath?: string;
+  audioStatus: 'pending' | 'generating' | 'completed' | 'failed';
   createdAt: string;
   updatedAt: string;
 }
@@ -76,6 +80,38 @@ export const projectsApi = {
   // 获取剧本和场景
   async getScript(projectId: string): Promise<ScriptWithScenes> {
     const response = await api.get<ScriptWithScenes>(`/projects/${projectId}/script`);
+    return response.data;
+  },
+
+  // 生成图片
+  async generateImages(projectId: string): Promise<{
+    success: boolean;
+    message: string;
+    generatedCount: number;
+    results?: Array<{ sceneId: string; success: boolean; imagePath?: string }>;
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      generatedCount: number;
+      results?: Array<{ sceneId: string; success: boolean; imagePath?: string }>;
+    }>(`/projects/${projectId}/generate-images`);
+    return response.data;
+  },
+
+  // 生成音频
+  async generateAudio(projectId: string): Promise<{
+    success: boolean;
+    message: string;
+    generatedCount: number;
+    results?: Array<{ sceneId: string; success: boolean; audioPath?: string }>;
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      generatedCount: number;
+      results?: Array<{ sceneId: string; success: boolean; audioPath?: string }>;
+    }>(`/projects/${projectId}/generate-audio`);
     return response.data;
   },
 };

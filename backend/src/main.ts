@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Enable CORS for frontend
   app.enableCors({
@@ -17,6 +19,16 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Serve static files from images directory
+  app.useStaticAssets(join(__dirname, '..', 'data', 'images'), {
+    prefix: '/api/images/',
+  });
+
+  // Serve static files from audio directory
+  app.useStaticAssets(join(__dirname, '..', 'data', 'audio'), {
+    prefix: '/api/audio/',
+  });
+
   // Enable validation
   app.useGlobalPipes(
     new ValidationPipe({
@@ -28,5 +40,7 @@ async function bootstrap() {
   const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`🚀 Backend server running on http://localhost:${port}`);
+  console.log(`📁 Images served from: http://localhost:${port}/api/images/`);
+  console.log(`📁 Audio served from: http://localhost:${port}/api/audio/`);
 }
 bootstrap();

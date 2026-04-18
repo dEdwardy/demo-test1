@@ -16,6 +16,8 @@ export default function ProjectDetailPage() {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingImages, setGeneratingImages] = useState(false);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,11 +70,85 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleGenerateImages = async () => {
+    if (!project || !script) return;
+
+    try {
+      setGeneratingImages(true);
+      const result = await projectsApi.generateImages(projectId);
+
+      if (result.success) {
+        alert(`图片生成成功！已为 ${result.generatedCount} 个场景生成图片。`);
+        // 重新加载剧本和场景以获取更新的图片信息
+        await loadScript();
+      } else {
+        alert(`图片生成完成：${result.message}`);
+      }
+    } catch (err) {
+      console.error('Failed to generate images:', err);
+      alert('生成图片失败，请重试。');
+    } finally {
+      setGeneratingImages(false);
+    }
+  };
+
+  const handleGenerateAudio = async () => {
+    if (!project || !script) return;
+
+    try {
+      setGeneratingAudio(true);
+      const result = await projectsApi.generateAudio(projectId);
+
+      if (result.success) {
+        alert(`音频生成成功！已为 ${result.generatedCount} 个场景生成音频。`);
+        // 重新加载剧本和场景以获取更新的音频信息
+        await loadScript();
+      } else {
+        alert(`音频生成完成：${result.message}`);
+      }
+    } catch (err) {
+      console.error('Failed to generate audio:', err);
+      alert('生成音频失败，请重试。');
+    } finally {
+      setGeneratingAudio(false);
+    }
+  };
+
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
       case 'draft':
         return 'bg-yellow-100 text-yellow-800';
       case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getImageStatusColor = (status: Scene['imageStatus']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-gray-100 text-gray-800';
+      case 'generating':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAudioStatusColor = (status: Scene['audioStatus']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-gray-100 text-gray-800';
+      case 'generating':
         return 'bg-blue-100 text-blue-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
@@ -195,9 +271,41 @@ export default function ProjectDetailPage() {
                 {/* Scenes Section */}
                 {scenes.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                      Scenes ({scenes.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Scenes ({scenes.length})
+                      </h3>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleGenerateImages}
+                          disabled={generatingImages}
+                          className="btn btn-primary"
+                        >
+                          {generatingImages ? (
+                            <>
+                              <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Generating Images...
+                            </>
+                          ) : (
+                            'Generate Images'
+                          )}
+                        </button>
+                        <button
+                          onClick={handleGenerateAudio}
+                          disabled={generatingAudio}
+                          className="btn btn-primary"
+                        >
+                          {generatingAudio ? (
+                            <>
+                              <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Generating Audio...
+                            </>
+                          ) : (
+                            'Generate Audio'
+                          )}
+                        </button>
+                      </div>
+                    </div>
                     <div className="space-y-4">
                       {scenes.map(scene => (
                         <div key={scene.id} className="border rounded-lg p-4">
@@ -207,12 +315,108 @@ export default function ProjectDetailPage() {
                               <span className="ml-3 text-sm text-gray-500">
                                 Duration: {scene.duration}s
                               </span>
+                              <span
+                                className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getImageStatusColor(scene.imageStatus)}`}
+                              >
+                                Image: {scene.imageStatus}
+                              </span>
+                              <span
+                                className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getAudioStatusColor(scene.audioStatus)}`}
+                              >
+                                Audio: {scene.audioStatus}
+                              </span>
                             </div>
                             <span className="text-sm text-gray-500">
                               {format(new Date(scene.createdAt), 'MMM d, yyyy HH:mm')}
                             </span>
                           </div>
                           <p className="text-gray-700 mb-2">{scene.description}</p>
+
+                          {/* Image Preview */}
+                          {scene.imagePath && scene.imageStatus === 'completed' && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded border">
+                              <div className="flex items-center mb-2">
+                                <svg
+                                  className="w-5 h-5 text-gray-500 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-700">
+                                  Scene Image
+                                </span>
+                              </div>
+                              <div className="border rounded p-3 bg-white">
+                                <div className="text-sm text-gray-600 mb-2">
+                                  Image path: <code className="text-xs">{scene.imagePath}</code>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <a
+                                    href={`http://localhost:8081${scene.imagePath}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline"
+                                  >
+                                    View Image →
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Audio Preview */}
+                          {scene.audioPath && scene.audioStatus === 'completed' && (
+                            <div className="mt-3 p-3 bg-purple-50 rounded border">
+                              <div className="flex items-center mb-2">
+                                <svg
+                                  className="w-5 h-5 text-purple-500 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                                  />
+                                </svg>
+                                <span className="text-sm font-medium text-purple-700">
+                                  Scene Audio
+                                </span>
+                              </div>
+                              <div className="border rounded p-3 bg-white">
+                                <div className="text-sm text-gray-600 mb-2">
+                                  Audio path: <code className="text-xs">{scene.audioPath}</code>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                  <audio controls className="w-full">
+                                    <source
+                                      src={`http://localhost:8081${scene.audioPath}`}
+                                      type="audio/wav"
+                                    />
+                                    Your browser does not support the audio element.
+                                  </audio>
+                                  <a
+                                    href={`http://localhost:8081${scene.audioPath}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-purple-600 hover:text-purple-800 underline text-sm whitespace-nowrap"
+                                  >
+                                    Download →
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {scene.dialogue && (
                             <div className="mt-2 p-3 bg-blue-50 rounded border border-blue-100">
                               <span className="text-sm font-medium text-blue-800">Dialogue:</span>
@@ -268,7 +472,7 @@ export default function ProjectDetailPage() {
             </h3>
             <p className="text-blue-700 mb-4">
               {script
-                ? 'Script and scenes have been generated successfully. Ready for Phase 3 video generation.'
+                ? 'Script and scenes have been generated successfully. Ready for image generation (Phase 2 media).'
                 : 'This project is currently in Phase 1. Generate a script to proceed to Phase 2.'}
             </p>
             <ul className="text-blue-700 text-sm space-y-2">
@@ -306,7 +510,7 @@ export default function ProjectDetailPage() {
                     />
                   )}
                 </svg>
-                {script ? 'Script generated' : 'Script generation (Phase 2)'}
+                {script ? 'Script generated' : 'Script generation (Phase 2 text)'}
               </li>
               <li className="flex items-center">
                 <svg
@@ -330,7 +534,71 @@ export default function ProjectDetailPage() {
                 </svg>
                 {scenes.length > 0
                   ? `Scenes generated (${scenes.length})`
-                  : 'Scene generation (Phase 2)'}
+                  : 'Scene generation (Phase 2 text)'}
+              </li>
+              <li className="flex items-center">
+                <svg
+                  className={`w-4 h-4 mr-2 ${scenes.some(s => s.imageStatus === 'completed') ? 'text-green-500' : scenes.some(s => s.imageStatus === 'generating') ? 'text-blue-500' : 'text-gray-400'}`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  {scenes.some(s => s.imageStatus === 'completed') ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  ) : scenes.some(s => s.imageStatus === 'generating') ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  ) : (
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  )}
+                </svg>
+                {scenes.some(s => s.imageStatus === 'completed')
+                  ? `Images generated (${scenes.filter(s => s.imageStatus === 'completed').length}/${scenes.length})`
+                  : scenes.some(s => s.imageStatus === 'generating')
+                    ? 'Image generation in progress'
+                    : 'Image generation (Phase 2 media)'}
+              </li>
+              <li className="flex items-center">
+                <svg
+                  className={`w-4 h-4 mr-2 ${scenes.some(s => s.audioStatus === 'completed') ? 'text-green-500' : scenes.some(s => s.audioStatus === 'generating') ? 'text-blue-500' : 'text-gray-400'}`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  {scenes.some(s => s.audioStatus === 'completed') ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  ) : scenes.some(s => s.audioStatus === 'generating') ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  ) : (
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  )}
+                </svg>
+                {scenes.some(s => s.audioStatus === 'completed')
+                  ? `Audio generated (${scenes.filter(s => s.audioStatus === 'completed').length}/${scenes.length})`
+                  : scenes.some(s => s.audioStatus === 'generating')
+                    ? 'Audio generation in progress'
+                    : 'Audio generation (Phase 2 media)'}
               </li>
               <li className="flex items-center">
                 <svg className="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">

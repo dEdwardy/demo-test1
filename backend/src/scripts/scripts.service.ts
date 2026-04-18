@@ -12,8 +12,11 @@ export class ScriptsService {
   private scenes: Scene[] = [];
 
   constructor() {
+    console.log('[ScriptsService] 构造函数被调用');
     this.loadScripts();
     this.loadScenes();
+    console.log(`[ScriptsService] 加载后 scripts 数量: ${this.scripts.length}`);
+    console.log(`[ScriptsService] 加载后 scenes 数量: ${this.scenes.length}`);
   }
 
   private loadScripts() {
@@ -51,6 +54,7 @@ export class ScriptsService {
       if (fs.existsSync(this.scenesFile)) {
         const data = fs.readFileSync(this.scenesFile, 'utf8');
         const parsed = JSON.parse(data);
+        console.log(`[ScriptsService] 从文件加载 ${parsed.length} 个场景`);
         this.scenes = parsed.map(
           (s: any) =>
             new Scene({
@@ -59,9 +63,12 @@ export class ScriptsService {
               updatedAt: new Date(s.updatedAt),
             })
         );
+        console.log(`[ScriptsService] 加载后 scenes 数组长度: ${this.scenes.length}`);
+      } else {
+        console.log('[ScriptsService] 场景文件不存在');
       }
     } catch (error) {
-      console.log('No existing scenes data found, starting fresh');
+      console.log('[ScriptsService] No existing scenes data found, starting fresh');
       this.scenes = [];
     }
   }
@@ -74,7 +81,7 @@ export class ScriptsService {
     }
   }
 
-  private saveScenes() {
+  private saveScenesToFile() {
     try {
       fs.writeFileSync(this.scenesFile, JSON.stringify(this.scenes, null, 2));
     } catch (error) {
@@ -180,7 +187,7 @@ Resolution and conclusion of the story.
       this.scenes.push(scene);
     });
 
-    this.saveScenes();
+    this.saveScenesToFile();
 
     return { script, scenes };
   }
@@ -190,9 +197,17 @@ Resolution and conclusion of the story.
   }
 
   async findScenesByScriptId(scriptId: string): Promise<Scene[]> {
-    return this.scenes
-      .filter(scene => scene.scriptId === scriptId)
-      .sort((a, b) => a.order - b.order);
+    console.log(`[ScriptsService] findScenesByScriptId called with scriptId: ${scriptId}`);
+    console.log(`[ScriptsService] 当前 scenes 数组长度: ${this.scenes.length}`);
+
+    const filteredScenes = this.scenes.filter(scene => scene.scriptId === scriptId);
+    console.log(`[ScriptsService] 过滤后场景数量: ${filteredScenes.length}`);
+
+    if (filteredScenes.length > 0) {
+      console.log(`[ScriptsService] 第一个场景的scriptId: ${filteredScenes[0].scriptId}`);
+    }
+
+    return filteredScenes.sort((a, b) => a.order - b.order);
   }
 
   async findScriptWithScenes(
@@ -205,5 +220,41 @@ Resolution and conclusion of the story.
 
     const scenes = await this.findScenesByScriptId(script.id);
     return { script, scenes };
+  }
+
+  /**
+   * 保存场景列表（更新现有场景）
+   */
+  async saveScenes(scenes: Scene[]): Promise<void> {
+    // 更新内存中的场景
+    for (const updatedScene of scenes) {
+      const index = this.scenes.findIndex(s => s.id === updatedScene.id);
+      if (index !== -1) {
+        // 创建一个新的Scene实例来确保所有方法都存在
+        const sceneData = {
+          id: updatedScene.id,
+          scriptId: updatedScene.scriptId,
+          order: updatedScene.order,
+          description: updatedScene.description,
+          dialogue: updatedScene.dialogue,
+          duration: updatedScene.duration,
+          imagePath: updatedScene.imagePath,
+          imageStatus: updatedScene.imageStatus,
+          createdAt: updatedScene.createdAt,
+          updatedAt: updatedScene.updatedAt,
+        };
+        this.scenes[index] = new Scene(sceneData);
+      }
+    }
+
+    // 保存到文件
+    this.saveScenesToFile();
+  }
+
+  /**
+   * 根据scriptId查找场景
+   */
+  async findByScriptId(scriptId: string): Promise<Scene[]> {
+    return this.findScenesByScriptId(scriptId);
   }
 }
