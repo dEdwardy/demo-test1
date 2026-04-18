@@ -1,0 +1,10 @@
+# NestJS specific build output
+dist/
+
+# Local development data
+data/
+
+# Environment variables (already in root .gitignore, kept for clarity)
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Config files
+*.config.js
+*.config.ts
+
+# Generated files
+**/*.d.ts
+
+# Logs
+*.log
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+
+# Data files
+backend/data/

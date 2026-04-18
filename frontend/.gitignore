@@ -1,0 +1,11 @@
+# Next.js specific build output
+.next/
+out/
+
+# Production build
+build/
+
+# Environment variables (already in root .gitignore, kept for clarity)
+.env
+.env.local
+.env.*.local

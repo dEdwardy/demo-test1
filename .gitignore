@@ -1,0 +1,118 @@
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+**/node_modules/
+.pnp/
+.pnp.js
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn-integrity
+
+# ============================================
+# Build outputs
+# ============================================
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ============================================
+# Logs
+# ============================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ============================================
+# Environment variables
+# ============================================
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ============================================
+# IDE
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============================================
+# OS generated files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================
+# Project specific
+# ============================================
+# Local data storage
+backend/data/
+!backend/data/.gitkeep
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Package manager lock files
+# Note: Only one lock file should be committed
+# Uncomment the one you use and commit it
+!package-lock.json
+# !yarn.lock
+# !pnpm-lock.yaml
+
+# ============================================
+# Tool specific
+# ============================================
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Husky
+.husky/_/
+
+# Lint-staged
+.lintstagedrc*
+
+# Agent temporary files
+.agents_tmp/
+.agent_tmp/
+
+# Editor/IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# Debug
+debug/
+*.debug
