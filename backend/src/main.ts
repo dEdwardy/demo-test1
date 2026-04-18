@@ -29,6 +29,11 @@ async function bootstrap() {
     prefix: '/api/audio/',
   });
 
+  // Serve static files from project-files directory (for videos)
+  app.useStaticAssets(join(__dirname, '..', 'project-files'), {
+    prefix: '/api/videos/',
+  });
+
   // Enable validation
   app.useGlobalPipes(
     new ValidationPipe({
@@ -42,5 +47,6 @@ async function bootstrap() {
   console.log(`🚀 Backend server running on http://localhost:${port}`);
   console.log(`📁 Images served from: http://localhost:${port}/api/images/`);
   console.log(`📁 Audio served from: http://localhost:${port}/api/audio/`);
+  console.log(`🎬 Videos served from: http://localhost:${port}/api/videos/`);
 }
 bootstrap();
