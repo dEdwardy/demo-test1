@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8081',
+  baseURL: 'http://localhost:4000',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,6 +13,8 @@ export interface Project {
   story: string;
   status: 'draft' | 'processing' | 'completed' | 'failed';
   scriptId?: string;
+  videoPath?: string;
+  videoStatus: 'pending' | 'generating' | 'completed' | 'failed';
   createdAt: string;
   updatedAt: string;
 }
@@ -20,7 +22,10 @@ export interface Project {
 export interface Script {
   id: string;
   projectId: string;
-  content: string;
+  title: string;
+  summary: string;
+  totalScenes: number;
+  totalDuration: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +53,21 @@ export interface CreateProjectData {
 export interface ScriptWithScenes {
   script: Script | null;
   scenes: Scene[];
+}
+
+export interface GenerateVideoResponse {
+  success: boolean;
+  message: string;
+  videoPath?: string;
+  ffmpegCommands?: string[];
+}
+
+export interface VideoInfoResponse {
+  exists: boolean;
+  videoPath?: string;
+  videoStatus?: 'pending' | 'generating' | 'completed' | 'failed';
+  url?: string;
+  size?: number;
 }
 
 export const projectsApi = {
@@ -112,6 +132,18 @@ export const projectsApi = {
       generatedCount: number;
       results?: Array<{ sceneId: string; success: boolean; audioPath?: string }>;
     }>(`/projects/${projectId}/generate-audio`);
+    return response.data;
+  },
+
+  // 生成视频
+  async generateVideo(projectId: string): Promise<GenerateVideoResponse> {
+    const response = await api.post<GenerateVideoResponse>(`/projects/${projectId}/generate-video`);
+    return response.data;
+  },
+
+  // 获取视频信息
+  async getVideo(projectId: string): Promise<VideoInfoResponse> {
+    const response = await api.get<VideoInfoResponse>(`/projects/${projectId}/video`);
     return response.data;
   },
 };

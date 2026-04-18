@@ -18,12 +18,15 @@ export default function ProjectDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [videoInfo, setVideoInfo] = useState<VideoInfoResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (projectId) {
       loadProject();
       loadScript();
+      loadVideoInfo();
     }
   }, [projectId]);
 
@@ -48,6 +51,15 @@ export default function ProjectDetailPage() {
       console.log('No script found for this project');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVideoInfo = async () => {
+    try {
+      const data = await projectsApi.getVideo(projectId);
+      setVideoInfo(data);
+    } catch (err) {
+      console.log('No video info found for this project');
     }
   };
 
@@ -114,6 +126,38 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleGenerateVideo = async () => {
+    if (!project || !script) return;
+
+    // 检查是否已生成图片和音频
+    const hasImages = scenes.some(s => s.imageStatus === 'completed');
+    const hasAudio = scenes.some(s => s.audioStatus === 'completed');
+
+    if (!hasImages || !hasAudio) {
+      alert('请先生成图片和音频，然后再生成视频。');
+      return;
+    }
+
+    try {
+      setGeneratingVideo(true);
+      const result = await projectsApi.generateVideo(projectId);
+
+      if (result.success) {
+        alert(`视频生成成功！${result.message}`);
+        // 重新加载项目信息和视频信息
+        await loadProject();
+        await loadVideoInfo();
+      } else {
+        alert(`视频生成完成：${result.message}`);
+      }
+    } catch (err) {
+      console.error('Failed to generate video:', err);
+      alert('生成视频失败，请重试。');
+    } finally {
+      setGeneratingVideo(false);
+    }
+  };
+
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
       case 'draft':
@@ -145,6 +189,21 @@ export default function ProjectDetailPage() {
   };
 
   const getAudioStatusColor = (status: Scene['audioStatus']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-gray-100 text-gray-800';
+      case 'generating':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getVideoStatusColor = (status: Project['videoStatus']) => {
     switch (status) {
       case 'pending':
         return 'bg-gray-100 text-gray-800';
@@ -226,6 +285,42 @@ export default function ProjectDetailPage() {
               <p className="text-gray-700 whitespace-pre-wrap">{project.story}</p>
             </div>
           </div>
+
+          {/* Video Player Section */}
+          {project.videoStatus === 'completed' && project.videoPath && (
+            <div className="card mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Generated Video</h2>
+              <div className="bg-black rounded-lg overflow-hidden">
+                <video
+                  controls
+                  className="w-full h-auto"
+                  src={`http://localhost:4000/api/videos/${project.id}/output/final-video.mp4`}
+                  poster={
+                    scenes[0]?.imagePath ? `http://localhost:4000${scenes[0].imagePath}` : undefined
+                  }
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4 flex justify-between items-center">
+                <div>
+                  <span className="text-sm text-gray-600">Video Status: </span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getVideoStatusColor(project.videoStatus)}`}
+                  >
+                    {project.videoStatus}
+                  </span>
+                </div>
+                <a
+                  href={`http://localhost:4000/api/videos/${project.id}/output/final-video.mp4`}
+                  download="final-video.mp4"
+                  className="btn btn-secondary text-sm"
+                >
+                  Download Video
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Script Section */}
           <div className="card mb-6">
@@ -601,14 +696,36 @@ export default function ProjectDetailPage() {
                     : 'Audio generation (Phase 2 media)'}
               </li>
               <li className="flex items-center">
-                <svg className="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
+                <svg
+                  className={`w-4 h-4 mr-2 ${project.videoStatus === 'completed' ? 'text-green-500' : project.videoStatus === 'generating' ? 'text-blue-500' : 'text-gray-400'}`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  {project.videoStatus === 'completed' ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  ) : project.videoStatus === 'generating' ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  ) : (
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  )}
                 </svg>
-                Video generation (Phase 3)
+                {project.videoStatus === 'completed'
+                  ? 'Video generated'
+                  : project.videoStatus === 'generating'
+                    ? 'Video generation in progress'
+                    : 'Video generation (Phase 3)'}
               </li>
             </ul>
           </div>
@@ -660,6 +777,28 @@ export default function ProjectDetailPage() {
               <button onClick={() => router.push('/create')} className="w-full btn btn-primary">
                 Create New Project
               </button>
+
+              {/* Video Generation Button */}
+              {script && scenes.length > 0 && (
+                <button
+                  onClick={handleGenerateVideo}
+                  disabled={
+                    generatingVideo ||
+                    !scenes.some(s => s.imageStatus === 'completed') ||
+                    !scenes.some(s => s.audioStatus === 'completed')
+                  }
+                  className="w-full btn bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingVideo ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating Video...
+                    </>
+                  ) : (
+                    'Generate Video'
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
